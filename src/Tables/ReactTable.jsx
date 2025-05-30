@@ -1,5 +1,5 @@
 import React from "react";
-import { useMemo ,Fragment} from "react";
+import { useMemo ,Fragment,useState,useEffect} from "react";
 import ExpandableComponent from './ExpandableComponent'
 import {
   flexRender,
@@ -8,7 +8,8 @@ import {
 } from "@tanstack/react-table";
 import { TbChevronsRight } from "react-icons/tb";
 
-const openExpand = (index, originalData) => {
+//row တစ်ခူစီ expand,collapase လုပ်ဖို့
+const openExpand = (index) => {
   const row = document.getElementById(`expand${index}`);
   const icon = document.getElementById(`expandIcon${index}`);
   if (row && icon) {
@@ -18,12 +19,20 @@ const openExpand = (index, originalData) => {
   }
 };
 
+//row တွေ အကုန် expand,collapase လုပ်ဖို့
+
 const openAllExpand = (rows, isAllExpanded) => {
-  rows.forEach((row) => {
-    const el = document.getElementById(`expand${row.id}`);
+   
+    const iconHeader = document.getElementById('expand-all-btn');
+      iconHeader.style.transform = isAllExpanded ? "rotate(0deg)" : "rotate(90deg)";
+      iconHeader.style.transition = "0.3s";
+
+    rows.map((row) => {
+    
+    const expandCell = document.getElementById(`expand${row.id}`);
     const icon = document.getElementById(`expandIcon${row.index}`);
-    if (el && icon) {
-      el.style.display = isAllExpanded ? "none" : "table-row";
+    if (expandCell && icon) {
+      expandCell.style.display = isAllExpanded ? "none" : "table-row";
       icon.style.transform = isAllExpanded ? "rotate(0deg)" : "rotate(90deg)";
     }
   });
@@ -31,12 +40,12 @@ const openAllExpand = (rows, isAllExpanded) => {
 
 
 const ReactTable = ({ dataRows, dataColumns }) => {
-
+//get data from rows
   const data = useMemo(() => {
     return dataRows;
   }, [dataRows]);
 
-
+//create prefix column for 2 button
   const prefixColumns = [
   {
     id: 'expander',
@@ -44,23 +53,23 @@ const ReactTable = ({ dataRows, dataColumns }) => {
     header: ({ table }) => {
       const isAllRowsExpanded = table.getIsAllRowsExpanded();
       const toggleAllRowsExpanded = table.getToggleAllRowsExpandedHandler();
-      const rows = table.getRowModel().rows;
+      const rows = table.getRowModel().rows; //current rows in ul not all rows( as pagination,filter)
 
       return (
         <button
           onClick={() => {
             toggleAllRowsExpanded(!isAllRowsExpanded);
-            openAllExpand(rows, isAllRowsExpanded); // You should define this
+            openAllExpand(rows, isAllRowsExpanded);
           }}
         >
-          <TbChevronsRight />
+          <TbChevronsRight id='expand-all-btn'/>
         </button>
       );
     },
     cell: ({ row }) => (
       <button
-        onClick={() => openExpand(row.index, row.original)} // You should define this
-        id={`expandBtn${row.index}`}
+        onClick={() => openExpand(row.index, row.original)}
+        // id={`expandBtn${row.index}`}
       >
         <TbChevronsRight id={`expandIcon${row.index}`} />
       </button>
@@ -69,37 +78,49 @@ const ReactTable = ({ dataRows, dataColumns }) => {
 ];
 
 
- 
-  // const reactTableColumns = React.useMemo(
-  //   () =>
-  //     dataColumns.map((col) => ({
-  //       header: col.Header,
-  //       accessorKey: col.accessor,
-  //       cell:
-  //         col.accessor === "order_date"
-  //           ? (info) => new Date(info.getValue()).toLocaleDateString()
-  //           : (info) => info.getValue(),
-  //     })),
-  //   [dataColumns]
-  // );
-const columns = React.useMemo(
+const mappedDataColumns = useMemo(
   () =>
-    [
-      ...prefixColumns, // Add prefix column first
-      ...dataColumns.map((col) => ({
-        header: col.Header,
-        accessorKey: col.accessor,
-        cell:
-          col.accessor === "order_date"
-            ? (info) => new Date(info.getValue()).toLocaleDateString()
-            : (info) => info.getValue(),
-      })),
-    ],
+    dataColumns.map((col) => ({
+      header: col.Header,
+      accessorKey: col.accessor,
+      cell:
+        col.accessor === "order_date"
+          ? (info) => new Date(info.getValue()).toLocaleDateString()
+          : (info) => info.getValue(),
+    })),
   [dataColumns]
 );
+
+const [columnVisibility, setColumnVisibility] = useState({});
+
+// Visibility state setup
+const changeGlobal = () => {
+  const defaultVisibility = {};
+
+  dataColumns?.map((col) => {
+    defaultVisibility[col.accessor] = true;
+  });
+
+  setColumnVisibility(defaultVisibility);
+};
+
+useEffect(() => {
+  changeGlobal();
+}, [dataColumns]);
+
+const columns = useMemo(
+  () => [...prefixColumns, ...mappedDataColumns],
+  [prefixColumns, mappedDataColumns]
+);
+
+//Table Instance.........................................
   const table = useReactTable({
     data,
     columns,
+      state: {
+    columnVisibility,
+  },
+  onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
   });
 
