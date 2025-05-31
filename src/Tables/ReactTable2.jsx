@@ -22,6 +22,10 @@ const openExpand = (index) => {
 //row တွေ အကုန် expand,collapase လုပ်ဖို့
 
 const openAllExpand = (rows, isAllExpanded) => {
+   
+    const iconHeader = document.getElementById('expand-all');
+      iconHeader.style.transform = isAllExpanded ? "rotate(0deg)" : "rotate(45deg)";
+      iconHeader.style.transition = "0.3s";
 
     rows.map((row) => {
     
@@ -35,7 +39,7 @@ const openAllExpand = (rows, isAllExpanded) => {
 };
 
 
-const ReactTable = ({ dataRows, dataColumns }) => {
+const ReactTable2 = ({ dataRows, dataColumns }) => {
 //get data from rows
   const data = useMemo(() => {
     return dataRows;
@@ -57,10 +61,6 @@ const ReactTable = ({ dataRows, dataColumns }) => {
             toggleAllRowsExpanded(!isAllRowsExpanded);
             openAllExpand(rows, isAllRowsExpanded);
           }}
-           style={{
-        transform: isAllRowsExpanded ? "rotate(90deg)" : "rotate(0deg)",
-      }}
-    
         >
           <TbChevronsRight id='expand-all'/>
         </button>
@@ -124,38 +124,7 @@ const columns = useMemo(
     getCoreRowModel: getCoreRowModel(),
   });
 
- useLayoutEffect(() => {
-  const handleResize = () => {
-    const wrapper = document.getElementById("customize-table");
-    if (!wrapper) return;
-
-    const wrapperWidth = wrapper.offsetWidth;
-    const allColumns = dataColumns.map((col) => ({
-      accessor: col.accessor,
-      width: col.width || 150, // default width fallback
-    }));
-
-    let currentTotalWidth = 50; // expander column width
-    const visibility = {};
-
-    for (let i = 0; i < allColumns.length; i++) {
-      const { accessor, width } = allColumns[i];
-      if (currentTotalWidth + width <= wrapperWidth) {
-        visibility[accessor] = true;
-        currentTotalWidth += width;
-      } else {
-        visibility[accessor] = false;
-      }
-    }
-
-    setColumnVisibility(visibility);
-  };
-
-  window.addEventListener("resize", handleResize);
-  handleResize(); // run initially
-  return () => window.removeEventListener("resize", handleResize);
-}, [dataColumns]);
-
+ 
 
 
 
@@ -224,11 +193,7 @@ const columns = useMemo(
       >
         <td colSpan={row.getVisibleCells().length}>
           <ExpandableComponent
-  rowData={row.original}
-  hiddenColumns={Object.keys(columnVisibility).filter(
-    (key) => columnVisibility[key] === false
-  )}
-  columnMeta={dataColumns}
+
 />
         </td>
       </tr>
@@ -248,4 +213,4 @@ const columns = useMemo(
   );
 };
 
-export default ReactTable;
+export default ReactTable2;
