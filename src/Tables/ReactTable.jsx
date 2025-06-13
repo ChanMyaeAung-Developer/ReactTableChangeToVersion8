@@ -1,5 +1,4 @@
-
-
+// ReactTable.js - No changes needed, keeping for context
 import React, {
   useMemo,
   Fragment,
@@ -15,8 +14,12 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getExpandedRowModel,
+  getFacetedUniqueValues,
 } from "@tanstack/react-table";
 import { TbChevronsRight } from "react-icons/tb";
+import { FiFilter } from "react-icons/fi";
+
+import FilterPanel from "./FilterPanel";
 
 const ReactTable = ({ dataRows, dataColumns }) => {
   const data = useMemo(() => dataRows, [dataRows]);
@@ -24,6 +27,8 @@ const ReactTable = ({ dataRows, dataColumns }) => {
   const [expanded, setExpanded] = useState({});
   const [columnVisibility, setColumnVisibility] = useState({});
   const [globalFilter, setGlobalFilter] = useState("");
+  const [columnFilters, setColumnFilters] = useState([]);
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
 
   const prefixColumns = [
     {
@@ -65,6 +70,7 @@ const ReactTable = ({ dataRows, dataColumns }) => {
           col.accessor === "order_date"
             ? (info) => new Date(info.getValue()).toLocaleDateString()
             : (info) => info.getValue(),
+        enableColumnFilter: true,
       })),
     [dataColumns]
   );
@@ -81,14 +87,17 @@ const ReactTable = ({ dataRows, dataColumns }) => {
       columnVisibility,
       globalFilter,
       expanded,
+      columnFilters,
     },
     onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: setGlobalFilter,
     onExpandedChange: setExpanded,
+    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
   });
 
   useEffect(() => {
@@ -138,9 +147,16 @@ const ReactTable = ({ dataRows, dataColumns }) => {
           type="text"
           value={globalFilter ?? ""}
           onChange={(e) => setGlobalFilter(e.target.value)}
-          placeholder="Search..."
+          placeholder="Global Search..."
           className="border px-2 py-1 rounded w-1/3"
         />
+        <button
+          onClick={() => setShowFilterPanel(true)}
+          className="ml-auto p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+          title="Open Column Filters"
+        >
+          <FiFilter className="h-5 w-5" />
+        </button>
       </div>
 
       {data?.length > 0 && (
@@ -233,6 +249,14 @@ const ReactTable = ({ dataRows, dataColumns }) => {
           Next
         </button>
       </div>
+
+      {showFilterPanel && (
+        <FilterPanel
+          table={table}
+          dataColumns={dataColumns}
+          onClose={() => setShowFilterPanel(false)}
+        />
+      )}
     </div>
   );
 };
