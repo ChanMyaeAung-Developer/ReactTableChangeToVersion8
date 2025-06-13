@@ -1,4 +1,3 @@
-// ReactTable.js - No changes needed, keeping for context
 import React, {
   useMemo,
   Fragment,
@@ -18,7 +17,6 @@ import {
 } from "@tanstack/react-table";
 import { TbChevronsRight } from "react-icons/tb";
 import { FiFilter } from "react-icons/fi";
-
 import FilterPanel from "./FilterPanel";
 
 const ReactTable = ({ dataRows, dataColumns }) => {
@@ -29,6 +27,7 @@ const ReactTable = ({ dataRows, dataColumns }) => {
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState([]);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [pageSize, setPageSize] = useState(10);
 
   const prefixColumns = [
     {
@@ -98,6 +97,11 @@ const ReactTable = ({ dataRows, dataColumns }) => {
     getPaginationRowModel: getPaginationRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+    initialState: {
+      pagination: {
+        pageSize,
+      },
+    },
   });
 
   useEffect(() => {
@@ -139,6 +143,14 @@ const ReactTable = ({ dataRows, dataColumns }) => {
     handleResize();
     return () => window.removeEventListener("resize", handleResize);
   }, [dataColumns]);
+
+  const handlePageSizeChange = (e) => {
+    const value = e.target.value;
+    const newSize = value === "all" ? data.length : Number(value);
+    setPageSize(newSize);
+    table.setPageSize(newSize);
+    table.setPageIndex(0); // reset to first page
+  };
 
   return (
     <div>
@@ -229,25 +241,43 @@ const ReactTable = ({ dataRows, dataColumns }) => {
         </div>
       )}
 
-      <div className="flex items-center justify-end p-4 gap-2 text-sm">
-        <button
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-        >
-          Previous
-        </button>
-        <span>
-          Page {table.getState().pagination.pageIndex + 1} of{" "}
-          {table.getPageCount()}
-        </span>
-        <button
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-        >
-          Next
-        </button>
+      <div className="flex items-center justify-between p-4 gap-4 text-sm">
+        <div className="flex items-center gap-2">
+          <label htmlFor="pageSizeSelect">Rows per page:</label>
+          <select
+            id="pageSizeSelect"
+            value={pageSize >= data.length ? "all" : pageSize}
+            onChange={handlePageSizeChange}
+            className="border px-2 py-1 rounded"
+          >
+            <option value="all">All</option>
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span>
+            Page {table.getState().pagination.pageIndex + 1} of{" "}
+            {table.getPageCount()}
+          </span>
+          <button
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
       </div>
 
       {showFilterPanel && (
