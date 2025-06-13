@@ -162,6 +162,10 @@ const ReactTable = ({ dataRows, dataColumns }) => {
           placeholder="Global Search..."
           className="border px-2 py-1 rounded w-1/3"
         />
+        {/* Display total row count here */}
+        <span className="ml-2 text-sm text-gray-600">
+          Total Rows: {table.getRowCount()}
+        </span>
         <button
           onClick={() => setShowFilterPanel(true)}
           className="ml-auto p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
