@@ -1,11 +1,5 @@
-import React, {
-  useMemo,
-  Fragment,
-  useState,
-  useEffect,
-  useLayoutEffect,
-} from "react";
-import ExpandableComponent from "./ExpandableComponent";
+// components/ReactTable.jsx
+import React, { useMemo, useState, useEffect } from "react"; // Removed useLayoutEffect from here as it's now in the new component
 import {
   flexRender,
   getCoreRowModel,
@@ -16,8 +10,15 @@ import {
   getFacetedUniqueValues,
 } from "@tanstack/react-table";
 import { TbChevronsRight } from "react-icons/tb";
-import { FiFilter } from "react-icons/fi";
-import FilterPanel from "./FilterPanel";
+
+// Import the new components
+import TableGlobalSearch from "./TableGlobalSearch";
+import TableRowCountDisplay from "./TableRowCountDisplay";
+import TableColumnFilter from "./TableColumnFilter";
+import TableHeader from "./TableHeader";
+import TableBody from "./TableBody";
+import TablePagination from "./TablePagination";
+import TableResponsiveColumnHider from "./TableResponsiveColumnHider"; // Import the new component
 
 const ReactTable = ({ dataRows, dataColumns }) => {
   const data = useMemo(() => dataRows, [dataRows]);
@@ -29,36 +30,39 @@ const ReactTable = ({ dataRows, dataColumns }) => {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [pageSize, setPageSize] = useState(10);
 
-  const prefixColumns = [
-    {
-      id: "expander",
-      size: 50,
-      header: ({ table }) => {
-        const isAllExpanded = table.getIsAllRowsExpanded();
-        return (
-          <button
-            onClick={table.getToggleAllRowsExpandedHandler()}
-            style={{
-              transform: isAllExpanded ? "rotate(90deg)" : "rotate(0deg)",
-              transition: "transform 0.2s ease",
-            }}
-          >
-            <TbChevronsRight />
+  const prefixColumns = useMemo(
+    () => [
+      {
+        id: "expander",
+        size: 50,
+        header: ({ table }) => {
+          const isAllExpanded = table.getIsAllRowsExpanded();
+          return (
+            <button
+              onClick={table.getToggleAllRowsExpandedHandler()}
+              style={{
+                transform: isAllExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                transition: "transform 0.2s ease",
+              }}
+            >
+              <TbChevronsRight />
+            </button>
+          );
+        },
+        cell: ({ row }) => (
+          <button onClick={() => row.toggleExpanded()}>
+            <TbChevronsRight
+              style={{
+                transform: row.getIsExpanded() ? "rotate(90deg)" : "rotate(0deg)",
+                transition: "transform 0.2s ease",
+              }}
+            />
           </button>
-        );
+        ),
       },
-      cell: ({ row }) => (
-        <button onClick={() => row.toggleExpanded()}>
-          <TbChevronsRight
-            style={{
-              transform: row.getIsExpanded() ? "rotate(90deg)" : "rotate(0deg)",
-              transition: "transform 0.2s ease",
-            }}
-          />
-        </button>
-      ),
-    },
-  ];
+    ],
+    []
+  );
 
   const mappedDataColumns = useMemo(
     () =>
@@ -112,37 +116,9 @@ const ReactTable = ({ dataRows, dataColumns }) => {
     setColumnVisibility(defaultVisibility);
   }, [dataColumns]);
 
-  useLayoutEffect(() => {
-    const handleResize = () => {
-      const wrapper = document.getElementById("customize-table");
-      if (!wrapper) return;
-
-      const wrapperWidth = wrapper.offsetWidth;
-      const allColumns = dataColumns.map((col) => ({
-        accessor: col.accessor,
-        width: col.width || 150,
-      }));
-
-      let currentTotalWidth = 50;
-      const visibility = {};
-
-      for (let i = 0; i < allColumns.length; i++) {
-        const { accessor, width } = allColumns[i];
-        if (currentTotalWidth + width <= wrapperWidth) {
-          visibility[accessor] = true;
-          currentTotalWidth += width;
-        } else {
-          visibility[accessor] = false;
-        }
-      }
-
-      setColumnVisibility(visibility);
-    };
-
-    window.addEventListener("resize", handleResize);
-    handleResize();
-    return () => window.removeEventListener("resize", handleResize);
-  }, [dataColumns]);
+  // The responsive column hiding logic is now handled by TableResponsiveColumnHider
+  // This component will automatically update `columnVisibility` state
+  // based on the wrapper's width.
 
   const handlePageSizeChange = (e) => {
     const value = e.target.value;
@@ -154,143 +130,47 @@ const ReactTable = ({ dataRows, dataColumns }) => {
 
   return (
     <div>
+      {/* TableResponsiveColumnHider is placed here. It doesn't render UI, just manages state. */}
+      <TableResponsiveColumnHider
+        dataColumns={dataColumns}
+        setColumnVisibility={setColumnVisibility}
+        tableId="customize-table" // Pass the ID of your table container
+        expanderColumnWidth={50} // Pass the width of your expander column if it's fixed
+      />
+
       <div className="p-4 flex items-center gap-2">
-        <input
-          type="text"
-          value={globalFilter ?? ""}
-          onChange={(e) => setGlobalFilter(e.target.value)}
-          placeholder="Global Search..."
-          className="border px-2 py-1 rounded w-1/3"
+        <TableGlobalSearch
+          globalFilter={globalFilter}
+          setGlobalFilter={setGlobalFilter}
         />
-        {/* Display total row count here */}
-        <span className="ml-2 text-sm text-gray-600">
-          Total Rows: {table.getRowCount()}
-        </span>
-        <button
-          onClick={() => setShowFilterPanel(true)}
-          className="ml-auto p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-          title="Open Column Filters"
-        >
-          <FiFilter className="h-5 w-5" />
-        </button>
+        <TableRowCountDisplay rowCount={table.getRowCount()} />
+        <TableColumnFilter
+          showFilterPanel={showFilterPanel}
+          setShowFilterPanel={setShowFilterPanel}
+          table={table}
+          dataColumns={dataColumns}
+        />
       </div>
 
       {data?.length > 0 && (
         <div className="p-4" id="customize-table">
           <table className="w-full shadow-md">
-            <thead className="h-12 rounded-md text-smallHeader">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr
-                  key={headerGroup.id}
-                  className="bg-[#F1F5FB] text-[#231F2080] font-bold text-[16px]"
-                >
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      style={{ width: header.getSize() || 100 }}
-                    >
-                      <div className="text-center text-sm font-semibold text-gray-700 px-2 py-1">
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-
-            <tbody className="px-4 text-content">
-              {table.getRowModel().rows.map((row, rowIndex) => (
-                <Fragment key={row.id}>
-                  <tr className="h-10 bg-[#F1F5FB] text-[12px] text-[#231F20E6] font-semibold w-full">
-                    {row.getVisibleCells().map((cell) => (
-                      <td
-                        key={cell.id}
-                        style={{ width: cell.column.getSize() || 100 }}
-                        className={
-                          rowIndex % 2 ? "bg-[#F1F5FB]" : "bg-white"
-                        }
-                      >
-                        <span className="flex items-center justify-center gap-1.5 px-2 line-clamp-1">
-                          <p className="line-clamp-1">
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
-                          </p>
-                        </span>
-                      </td>
-                    ))}
-                  </tr>
-
-                  {row.getIsExpanded() && (
-                    <tr>
-                      <td colSpan={row.getVisibleCells().length}>
-                        <ExpandableComponent
-                          rowData={row.original}
-                          hiddenColumns={Object.keys(columnVisibility).filter(
-                            (key) => columnVisibility[key] === false
-                          )}
-                          columnMeta={dataColumns}
-                        />
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              ))}
-            </tbody>
+            <TableHeader table={table} />
+            <TableBody
+              table={table}
+              columnVisibility={columnVisibility}
+              dataColumns={dataColumns}
+            />
           </table>
         </div>
       )}
 
-      <div className="flex items-center justify-between p-4 gap-4 text-sm">
-        <div className="flex items-center gap-2">
-          <label htmlFor="pageSizeSelect">Rows per page:</label>
-          <select
-            id="pageSizeSelect"
-            value={pageSize >= data.length ? "all" : pageSize}
-            onChange={handlePageSizeChange}
-            className="border px-2 py-1 rounded"
-          >
-            <option value="all">All</option>
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="15">15</option>
-            <option value="20">20</option>
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-          >
-            Previous
-          </button>
-          <span>
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
-          </span>
-          <button
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-
-      {showFilterPanel && (
-        <FilterPanel
-          table={table}
-          dataColumns={dataColumns}
-          onClose={() => setShowFilterPanel(false)}
-        />
-      )}
+      <TablePagination
+        table={table}
+        data={data}
+        pageSize={pageSize}
+        handlePageSizeChange={handlePageSizeChange}
+      />
     </div>
   );
 };
